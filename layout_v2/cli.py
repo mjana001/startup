@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import shutil
 import sys
 
 from .config import load_config
@@ -23,8 +24,31 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+def _check_dependencies(mode: str) -> bool:
+    missing = []
+    if shutil.which("xrandr") is None:
+        missing.append("xrandr")
+    if mode in ("apply", "watch") and shutil.which("wmctrl") is None:
+        missing.append("wmctrl")
+
+    if missing:
+        print(
+            "[ERROR] Missing required dependency(s): " + ", ".join(missing),
+            file=sys.stderr,
+        )
+        print(
+            "[HINT] Install the missing tools or run in 'plan' mode only.",
+            file=sys.stderr,
+        )
+        return False
+    return True
+
+
 def main() -> int:
     args = build_parser().parse_args()
+
+    if not _check_dependencies(args.mode):
+        return 2
 
     cfg = load_config(args.config)
 
